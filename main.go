@@ -46,12 +46,29 @@ var remark = []measurement{
 	},
 }
 
+const (
+	GetAll        = "SELECT * FROM AllRanks"
+	GetAllByModel = "SELECT * FROM AllRanks WHERE car_id = '%s'"
+)
+
 func homeLink(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome home!")
 }
 
 func getAllMeasurements(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(readRankings())
+	json.NewEncoder(w).Encode(readRankings(""))
+}
+
+func getFerrariMeasurements(w http.ResponseWriter, r *http.Request) {
+	json.NewEncoder(w).Encode(readRankings("Ferrari"))
+}
+
+func getMaseratiMeasurements(w http.ResponseWriter, r *http.Request) {
+	json.NewEncoder(w).Encode(readRankings("maserati"))
+}
+
+func getLamborghiniMeasurements(w http.ResponseWriter, r *http.Request) {
+	json.NewEncoder(w).Encode(readRankings("lamborghini"))
 }
 
 func check(err error) {
@@ -60,11 +77,20 @@ func check(err error) {
 	}
 }
 
-func readRankings() (measurements []measurement) {
+func readRankings(carId string) (measurements []measurement) {
 	db, err := sql.Open("sqlite3", "./ranks.db")
 	check(err)
+	defer db.Close()
 
-	rows, err := db.Query("SELECT * FROM AllRanks")
+	var query string
+	if carId != "" {
+		query = fmt.Sprintf(GetAllByModel, carId)
+		//query = query + " WHERE car_id='Ferrari'"
+	} else {
+		query = GetAll
+	}
+
+	rows, err := db.Query(query)
 	check(err)
 
 	for rows.Next() {
@@ -114,5 +140,8 @@ func filterOmega(m []measurement) []measurement {
 func main() {
 	http.HandleFunc("/", homeLink)
 	http.HandleFunc("/allranks", getAllMeasurements)
+	http.HandleFunc("/ferrari", getFerrariMeasurements)
+	http.HandleFunc("/maserati", getMaseratiMeasurements)
+	http.HandleFunc("/lamborghini", getLamborghiniMeasurements)
 	log.Fatal(http.ListenAndServe(":7777", nil))
 }

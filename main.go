@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -16,7 +18,7 @@ type measurement struct {
 	Position  string `json:"position"`
 	Press     string `json:"press"`
 	Temp      string `json:"temp"`
-	Omega     string `json:"omega"`
+	Omega     int    `json:"omega"`
 	Speed     string `json:"speed"`
 	CarID     string `json:"car_id"`
 }
@@ -27,7 +29,7 @@ var remark = []measurement{
 		Timestamp: "2022-10-04T15:15:47.000Z",
 		Position:  "position1",
 		Temp:      "50",
-		Omega:     "ooo",
+		Omega:     420,
 		Speed:     "sss",
 		CarID:     "Ferrari",
 		Press:     "mamt",
@@ -37,7 +39,7 @@ var remark = []measurement{
 		Timestamp: "2022-11-04T15:15:47.000Z",
 		Position:  "position2",
 		Temp:      "80",
-		Omega:     "ooo2",
+		Omega:     -77,
 		Speed:     "sss2",
 		CarID:     "Maserati",
 		Press:     "mamt",
@@ -58,7 +60,7 @@ func check(err error) {
 	}
 }
 
-func readRankings() (measurments []measurement) {
+func readRankings() (measurements []measurement) {
 	db, err := sql.Open("sqlite3", "./ranks.db")
 	check(err)
 
@@ -80,10 +82,33 @@ func readRankings() (measurments []measurement) {
 		)
 		check(err)
 
-		measurments = append(measurments, m)
+		measurements = append(measurements, m)
 	}
 
+	measurements = filterOmega((measurements))
+	sort.Slice(measurements, func(i, j int) bool {
+		m1t, err := time.Parse(time.RFC3339, measurements[i].Timestamp)
+		check(err)
+
+		m2t, err := time.Parse(time.RFC3339, measurements[j].Timestamp)
+		check(err)
+
+		return m1t.Before(m2t)
+	})
+
 	return
+}
+
+func filterOmega(m []measurement) []measurement {
+	var filtered []measurement
+
+	for _, me := range m {
+		if me.Omega >= 0 {
+			filtered = append(filtered, me)
+		}
+	}
+
+	return filtered
 }
 
 func main() {

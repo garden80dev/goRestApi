@@ -1,43 +1,46 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type measurement struct {
-	Timestamp string `json:"Timestamp"`
-	Position  string `json:"Position"`
-	Temp      string `json:"Temp"`
-	Omega     string `json:"Omega"`
-	Speed     string `json:"Speed"`
-	Car_id    string `json:"Car_id"`
+	ID        string `json:"id"`
+	Timestamp string `json:"timestamp"`
+	Position  string `json:"position"`
+	Press     string `json:"press"`
+	Temp      string `json:"temp"`
+	Omega     string `json:"omega"`
+	Speed     string `json:"speed"`
+	CarID     string `json:"car_id"`
 }
 
-type measurements []measurement
-
-var remark = measurements{
+var remark = []measurement{
 	{
-		Id: "0001"
+		ID:        "0001",
 		Timestamp: "2022-10-04T15:15:47.000Z",
 		Position:  "position1",
 		Temp:      "50",
 		Omega:     "ooo",
 		Speed:     "sss",
-		Car_id:    "Ferrari",
+		CarID:     "Ferrari",
+		Press:     "mamt",
 	},
 	{
-		Id: "0002"
+		ID:        "0002",
 		Timestamp: "2022-11-04T15:15:47.000Z",
 		Position:  "position2",
 		Temp:      "80",
 		Omega:     "ooo2",
 		Speed:     "sss2",
-		Car_id:    "Maserati",
+		CarID:     "Maserati",
+		Press:     "mamt",
 	},
 }
 
@@ -46,28 +49,45 @@ func homeLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func getAllMeasurements(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(remark)
+	json.NewEncoder(w).Encode(readRankings())
 }
 
-func openDb() {
-	database, _ := sql.Open("sqlite3", "./ranks.db")
-    //statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS AllRanks (id INTEGER PRIMARY KEY, timestamp TEXT, press INTEGER, )")
-    //statement.Exec()
-    //statement, _ = database.Prepare("INSERT INTO AllRanks (timestamp, press) VALUES (?, ?)")
-    //statement.Exec("Nic", "Raboy")
-    rows, _ := database.Query("SELECT id, timestamp, press FROM AllRanks")
-    var id int
-    var timestamp string
-    var press int
-    for rows.Next() {
-        rows.Scan(&id, &timestamp, &press)
-        fmt.Println(strconv.Itoa(id) + ": " + timestamp + " " + press)
-    }
+func check(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func readRankings() (measurments []measurement) {
+	db, err := sql.Open("sqlite3", "./ranks.db")
+	check(err)
+
+	rows, err := db.Query("SELECT * FROM AllRanks")
+	check(err)
+
+	for rows.Next() {
+		var m measurement
+
+		err := rows.Scan(
+			&m.ID,
+			&m.Timestamp,
+			&m.Press,
+			&m.Position,
+			&m.Temp,
+			&m.Omega,
+			&m.Speed,
+			&m.CarID,
+		)
+		check(err)
+
+		measurments = append(measurments, m)
+	}
+
+	return
 }
 
 func main() {
-	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/", homeLink)
-	router.HandleFunc("/events", getAllMeasurements).Methods("GET")
-	log.Fatal(http.ListenAndServe(":7777", router))
+	http.HandleFunc("/", homeLink)
+	http.HandleFunc("/allranks", getAllMeasurements)
+	log.Fatal(http.ListenAndServe(":7777", nil))
 }

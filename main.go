@@ -23,32 +23,9 @@ type measurement struct {
 	CarID     string `json:"car_id"`
 }
 
-var remark = []measurement{
-	{
-		ID:        "0001",
-		Timestamp: "2022-10-04T15:15:47.000Z",
-		Position:  "position1",
-		Temp:      "50",
-		Omega:     420,
-		Speed:     "sss",
-		CarID:     "Ferrari",
-		Press:     "mamt",
-	},
-	{
-		ID:        "0002",
-		Timestamp: "2022-11-04T15:15:47.000Z",
-		Position:  "position2",
-		Temp:      "80",
-		Omega:     -77,
-		Speed:     "sss2",
-		CarID:     "Maserati",
-		Press:     "mamt",
-	},
-}
-
 const (
-	GetAll        = "SELECT * FROM AllRanks"
-	GetAllByModel = "SELECT * FROM AllRanks WHERE car_id = '%s'"
+	GetAll        = "SELECT * FROM AllRanks WHERE omega >= 0"
+	GetAllByModel = "SELECT * FROM AllRanks WHERE (car_id = '%s') AND (omega >= 0) "
 )
 
 func homeLink(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +62,6 @@ func readRankings(carId string) (measurements []measurement) {
 	var query string
 	if carId != "" {
 		query = fmt.Sprintf(GetAllByModel, carId)
-		//query = query + " WHERE car_id='Ferrari'"
 	} else {
 		query = GetAll
 	}
@@ -111,7 +87,7 @@ func readRankings(carId string) (measurements []measurement) {
 		measurements = append(measurements, m)
 	}
 
-	measurements = filterOmega((measurements))
+	//measurements = filterOmega((measurements))
 	sort.Slice(measurements, func(i, j int) bool {
 		m1t, err := time.Parse(time.RFC3339, measurements[i].Timestamp)
 		check(err)

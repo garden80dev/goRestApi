@@ -24,8 +24,8 @@ type measurement struct {
 }
 
 const (
-	GetAll        = "SELECT * FROM AllRanks WHERE omega >= 0"
-	GetAllByModel = "SELECT * FROM AllRanks WHERE (car_id = '%s') AND (omega >= 0) "
+	GetAll        = "SELECT * FROM AllRanks WHERE (omega >= 0) AND (press >= 0)"
+	GetAllByModel = "SELECT * FROM AllRanks WHERE (car_id = '%s') AND (omega >= 0) AND (press >= 0)"
 )
 
 func homeLink(w http.ResponseWriter, r *http.Request) {
